@@ -43,6 +43,7 @@ private:
     QString OpToString(Operation op);
     QString RemoveTrailingZeroes(const QString &text);
     QString NormalizeNumber(const QString &text);
+
     QLabel* l_memory;
     QLabel* l_result;
     QLabel* l_formula;
@@ -52,6 +53,7 @@ private:
     Calculator calculator_;
     double memory_value_ = 0.0;
     bool has_memory_ = false;
+    bool is_result_shown_ = false; 
 };
 
-#endif 
+#endif // MAINWINDOW_H
