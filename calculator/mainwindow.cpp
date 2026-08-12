@@ -99,7 +99,6 @@ void MainWindow::SetupUi() {
     main_layout->addLayout(grid_layout);
 }
 
-
 QString MainWindow::RemoveTrailingZeroes(const QString &text) {
     for (qsizetype i = 0; i < text.size(); ++i) {
         if (text[i] != '0') return text.mid(i);
@@ -141,13 +140,21 @@ QString MainWindow::OpToString(Operation op) {
         case Operation::SUBTRACTION:    return "−";
         case Operation::ADDITION:       return "+";
         case Operation::POWER:          return "^";
+        default:                        return ""; 
     }
-    return "";
 }
 
 void MainWindow::OnDigitPressed() {
     QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (button) AddText(button->text());
+    if (!button) return;
+
+    if (is_result_shown_) {
+        l_formula->clear();
+        input_number_ = "";
+        is_result_shown_ = false;
+    }
+
+    AddText(button->text());
 }
 
 void MainWindow::OnDotPressed() {
@@ -156,11 +163,25 @@ void MainWindow::OnDotPressed() {
 }
 
 void MainWindow::OnSignPressed() {
+    if (is_result_shown_) {
+        l_formula->clear();
+        is_result_shown_ = false;
+    }
+
+    if (input_number_.isEmpty() && active_number_ != 0) {
+        input_number_ = QString::number(active_number_);
+    }
+
+    if (input_number_ == "0" || input_number_.isEmpty()) {
+        return; 
+    }
+
     if (input_number_.startsWith('-')) {
         input_number_ = input_number_.mid(1);
     } else {
         input_number_ = "-" + input_number_;
     }
+
     SetText(input_number_);
 }
 
@@ -195,13 +216,14 @@ void MainWindow::SetOperation(Operation op) {
     }
     
     current_operation_ = op;
+    is_result_shown_ = false; 
     
     QString formula_text = QString("%1 %2")
                            .arg(calculator_.GetNumber())
                            .arg(OpToString(op));
     l_formula->setText(formula_text);
     
-    input_number_ = ""; // Сброс ввода в обход SetText
+    input_number_ = ""; 
 }
 
 void MainWindow::OnEqualPressed() {
@@ -226,6 +248,7 @@ void MainWindow::OnEqualPressed() {
     
     input_number_ = ""; 
     current_operation_ = Operation::NO_OPERATION;
+    is_result_shown_ = true; 
 }
 
 void MainWindow::OnMemoryPressed() {
@@ -244,6 +267,7 @@ void MainWindow::OnMemoryPressed() {
             active_number_ = memory_value_;
             l_result->setText(QString::number(active_number_));
             input_number_ = ""; 
+            is_result_shown_ = true; 
         }
     } 
     else if (text == "MC") {
@@ -257,5 +281,6 @@ void MainWindow::OnClearPressed() {
     current_operation_ = Operation::NO_OPERATION;
     l_formula->clear();
     calculator_.Set(0.0);
+    is_result_shown_ = false; 
     SetText("0");
 }
