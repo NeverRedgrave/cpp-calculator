@@ -56,4 +56,4 @@ private:
     bool is_result_shown_ = false; 
 };
 
-#endif // MAINWINDOW_H
+#endif
