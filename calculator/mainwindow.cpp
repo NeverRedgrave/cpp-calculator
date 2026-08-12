@@ -2,6 +2,11 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     SetupUi();
+    setWindowTitle("Калькулятор");
+    resize(310, 362);
+    QFont default_font = this->font();
+    default_font.setPointSize(14);
+    this->setFont(default_font);
     SetText("0"); 
 }
 
@@ -100,10 +105,13 @@ void MainWindow::SetupUi() {
 }
 
 QString MainWindow::RemoveTrailingZeroes(const QString &text) {
-    for (qsizetype i = 0; i < text.size(); ++i) {
-        if (text[i] != '0') return text.mid(i);
+    if (text == "0") return "0";
+    int first_non_zero = 0;
+    while (first_non_zero < text.size() && text[first_non_zero] == '0') {
+        first_non_zero++;
     }
-    return "";
+    if (first_non_zero == text.size()) return "0";
+    return text.mid(first_non_zero);
 }
 
 QString MainWindow::NormalizeNumber(const QString &text) {
@@ -111,13 +119,16 @@ QString MainWindow::NormalizeNumber(const QString &text) {
         return "0";
     }
     if (text.startsWith('.')) {
-        return NormalizeNumber("0" + text);
+        return "0" + text;
     }
     if (text.startsWith('-')) {
-        return "-" + NormalizeNumber(text.mid(1));
+        QString rest = text.mid(1);
+        if (rest.startsWith('.')) rest = "0" + rest;
+        if (rest.startsWith('0') && !rest.startsWith("0.")) rest = RemoveTrailingZeroes(rest);
+        return "-" + rest;
     }
     if (text.startsWith('0') && !text.startsWith("0.")) {
-        return NormalizeNumber(RemoveTrailingZeroes(text));
+        return RemoveTrailingZeroes(text);
     }
     return text;
 }
