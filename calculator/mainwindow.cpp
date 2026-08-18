@@ -1,297 +1,127 @@
 #include "mainwindow.h"
+#include "ui_mainwindow.h"
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    SetupUi();
-    setWindowTitle("Калькулятор");
-    resize(310, 362);
-    QFont default_font = this->font();
-    default_font.setPointSize(14);
-    this->setFont(default_font);
-    SetText("0"); 
-}
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
 
-void MainWindow::SetupUi() {
-    QWidget* central_widget = new QWidget(this);
-    setCentralWidget(central_widget);
+    if (ui->btn_sub) ui->btn_sub->setText("−");
+    if (ui->btn_div) ui->btn_div->setText("÷");
+    if (ui->btn_mul) ui->btn_mul->setText("×");
+    if (ui->btn_pow) ui->btn_pow->setText("xʸ");
 
-    QVBoxLayout* main_layout = new QVBoxLayout(central_widget);
-
-    l_memory = new QLabel("", this);
-    l_formula = new QLabel("", this);
-    l_result = new QLabel("0", this);
-
-    l_memory->setObjectName("l_memory");
-    l_formula->setObjectName("l_formula");
-    l_result->setObjectName("l_result");
-
-    l_memory->setAlignment(Qt::AlignLeft);
-    l_formula->setAlignment(Qt::AlignRight);
-    l_result->setAlignment(Qt::AlignRight);
-
-    main_layout->addWidget(l_memory);
-    main_layout->addWidget(l_formula);
-    main_layout->addWidget(l_result);
-
-    QGridLayout* grid_layout = new QGridLayout();
-
-    QPushButton* btn_mc = new QPushButton("MC", this);
-    QPushButton* btn_mr = new QPushButton("MR", this);
-    QPushButton* btn_ms = new QPushButton("MS", this);
-    QPushButton* btn_clear = new QPushButton("C", this);
-    QPushButton* btn_backspace = new QPushButton("⌫", this);
-
-    QPushButton* btn_pow = new QPushButton("xʸ", this);
-    QPushButton* btn_sign = new QPushButton("±", this);
-    QPushButton* btn_div = new QPushButton("÷", this);
-    QPushButton* btn_mul = new QPushButton("×", this);
-    QPushButton* btn_sub = new QPushButton("−", this);
-    QPushButton* btn_add = new QPushButton("+", this);
-    QPushButton* btn_equal = new QPushButton("=", this);
-    QPushButton* btn_dot = new QPushButton(".", this);
-
-    connect(btn_clear, &QPushButton::clicked, this, &MainWindow::OnClearPressed);
-    connect(btn_backspace, &QPushButton::clicked, this, &MainWindow::OnBackspacePressed);
-    connect(btn_sign, &QPushButton::clicked, this, &MainWindow::OnSignPressed);
-    connect(btn_dot, &QPushButton::clicked, this, &MainWindow::OnDotPressed);
-    connect(btn_equal, &QPushButton::clicked, this, &MainWindow::OnEqualPressed);
-
-    connect(btn_mc, &QPushButton::clicked, this, &MainWindow::OnMemoryPressed);
-    connect(btn_mr, &QPushButton::clicked, this, &MainWindow::OnMemoryPressed);
-    connect(btn_ms, &QPushButton::clicked, this, &MainWindow::OnMemoryPressed);
-
-    connect(btn_add, &QPushButton::clicked, this, &MainWindow::OnOperationPressed);
-    connect(btn_sub, &QPushButton::clicked, this, &MainWindow::OnOperationPressed);
-    connect(btn_mul, &QPushButton::clicked, this, &MainWindow::OnOperationPressed);
-    connect(btn_div, &QPushButton::clicked, this, &MainWindow::OnOperationPressed);
-    connect(btn_pow, &QPushButton::clicked, this, &MainWindow::OnOperationPressed);
-
-    QList<QPushButton*> digits;
-    for (int i = 0; i <= 9; ++i) {
-        QPushButton* btn_digit = new QPushButton(QString::number(i), this);
-        digits.append(btn_digit);
-        connect(btn_digit, &QPushButton::clicked, this, &MainWindow::OnDigitPressed);
+    if (ui->btn_plus_minus) ui->btn_plus_minus->setText("±");
+    else {
+        QPushButton* pm = this->findChild<QPushButton*>("btn_plus_minus");
+        if (!pm) pm = this->findChild<QPushButton*>("tb_plus_minus");
+        if (pm) pm->setText("±");
     }
 
-    grid_layout->addWidget(btn_mc, 0, 0); 
-    grid_layout->addWidget(btn_mr, 0, 1); 
-    grid_layout->addWidget(btn_ms, 0, 2); 
-    grid_layout->addWidget(btn_clear, 0, 3);
-
-    grid_layout->addWidget(digits[7], 1, 0); 
-    grid_layout->addWidget(digits[8], 1, 1); 
-    grid_layout->addWidget(digits[9], 1, 2); 
-    grid_layout->addWidget(btn_div, 1, 3);
-
-    grid_layout->addWidget(digits[4], 2, 0); 
-    grid_layout->addWidget(digits[5], 2, 1); 
-    grid_layout->addWidget(digits[6], 2, 2); 
-    grid_layout->addWidget(btn_mul, 2, 3);
-
-    grid_layout->addWidget(digits[1], 3, 0); 
-    grid_layout->addWidget(digits[2], 3, 1); 
-    grid_layout->addWidget(digits[3], 3, 2); 
-    grid_layout->addWidget(btn_sub, 3, 3);
-
-    grid_layout->addWidget(btn_sign, 4, 0);   
-    grid_layout->addWidget(digits[0], 4, 1); 
-    grid_layout->addWidget(btn_dot, 4, 2); 
-    grid_layout->addWidget(btn_add, 4, 3);
-
-    grid_layout->addWidget(btn_pow, 5, 0);    
-    grid_layout->addWidget(btn_backspace, 5, 1); 
-    grid_layout->addWidget(btn_equal, 5, 2, 1, 2);
-
-    main_layout->addLayout(grid_layout);
-}
-
-QString MainWindow::RemoveTrailingZeroes(const QString &text) {
-    if (text == "0") return "0";
-    int first_non_zero = 0;
-    while (first_non_zero < text.size() && text[first_non_zero] == '0') {
-        first_non_zero++;
-    }
-    if (first_non_zero == text.size()) return "0";
-    return text.mid(first_non_zero);
-}
-
-QString MainWindow::NormalizeNumber(const QString &text) {
-    if (text.isEmpty() || text == "-") {
-        return "0";
-    }
-    if (text.startsWith('.')) {
-        return "0" + text;
-    }
-    if (text.startsWith('-')) {
-        QString rest = text.mid(1);
-        if (rest.startsWith('.')) rest = "0" + rest;
-        if (rest.startsWith('0') && !rest.startsWith("0.")) rest = RemoveTrailingZeroes(rest);
-        return "-" + rest;
-    }
-    if (text.startsWith('0') && !text.startsWith("0.")) {
-        return RemoveTrailingZeroes(text);
-    }
-    return text;
-}
-
-void MainWindow::SetText(const QString& text) {
-    input_number_ = NormalizeNumber(text);
-    active_number_ = input_number_.toDouble(); 
-    l_result->setText(input_number_);
-}
-
-void MainWindow::AddText(const QString& suffix) {
-    SetText(input_number_ + suffix);
-}
-
-QString MainWindow::OpToString(Operation op) {
-    switch(op) {
-        case Operation::NO_OPERATION:   return "";
-        case Operation::MULTIPLICATION: return "×";
-        case Operation::DIVISION:       return "÷";
-        case Operation::SUBTRACTION:    return "−";
-        case Operation::ADDITION:       return "+";
-        case Operation::POWER:          return "^";
-        default:                        return ""; 
-    }
-}
-
-void MainWindow::OnDigitPressed() {
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-
-    if (is_result_shown_) {
-        l_formula->clear();
-        input_number_ = "";
-        is_result_shown_ = false;
+    if (ui->btn_backspace) ui->btn_backspace->setText("⌫");
+    else {
+        QPushButton* bs = this->findChild<QPushButton*>("btn_backspace");
+        if (!bs) bs = this->findChild<QPushButton*>("tb_backspace");
+        if (bs) bs->setText("⌫");
     }
 
-    AddText(button->text());
-}
-
-void MainWindow::OnDotPressed() {
-    if (input_number_.contains('.')) return;
-    AddText(".");
-}
-
-void MainWindow::OnSignPressed() {
-    if (is_result_shown_) {
-        l_formula->clear();
-        is_result_shown_ = false;
+    for (auto* btn : this->findChildren<QPushButton*>()) {
+        if (btn->text() == "-") btn->setText("−");
+        else if (btn->text() == "/") btn->setText("÷");
+        else if (btn->text() == "*") btn->setText("×");
+        else if (btn->text() == "+-" || btn->text() == "+/-" || btn->text() == "+ / -") btn->setText("±");
+        else if (btn->text() == "^") btn->setText("xʸ");
+        else if (btn->text() == "Backspace" || btn->text() == "Delete" || btn->text() == "Clear") btn->setText("⌫");
     }
 
-    if (input_number_.isEmpty() && active_number_ != 0) {
-        input_number_ = QString::number(active_number_);
-    }
+    connect(ui->btn_0, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(0); });
+    connect(ui->btn_1, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(1); });
+    connect(ui->btn_2, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(2); });
+    connect(ui->btn_3, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(3); });
+    connect(ui->btn_4, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(4); });
+    connect(ui->btn_5, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(5); });
+    connect(ui->btn_6, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(6); });
+    connect(ui->btn_7, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(7); });
+    connect(ui->btn_8, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(8); });
+    connect(ui->btn_9, &QPushButton::clicked, [this]() { if (digit_cb_) digit_cb_(9); });
 
-    if (input_number_ == "0" || input_number_.isEmpty()) {
-        return; 
-    }
+    connect(ui->btn_add, &QPushButton::clicked, [this]() { if (operation_cb_) operation_cb_(Operation::ADDITION); });
+    connect(ui->btn_sub, &QPushButton::clicked, [this]() { if (operation_cb_) operation_cb_(Operation::SUBTRACTION); });
+    connect(ui->btn_mul, &QPushButton::clicked, [this]() { if (operation_cb_) operation_cb_(Operation::MULTIPLICATION); });
+    connect(ui->btn_div, &QPushButton::clicked, [this]() { if (operation_cb_) operation_cb_(Operation::DIVISION); });
+    connect(ui->btn_pow, &QPushButton::clicked, [this]() { if (operation_cb_) operation_cb_(Operation::POWER); });
 
-    if (input_number_.startsWith('-')) {
-        input_number_ = input_number_.mid(1);
-    } else {
-        input_number_ = "-" + input_number_;
-    }
+    connect(ui->btn_equals, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::EQUALS); });
+    connect(ui->btn_clear, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::CLEAR); });
+    connect(ui->btn_plus_minus, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::PLUS_MINUS); });
+    connect(ui->btn_backspace, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::BACKSPACE); });
+    connect(ui->tb_extra, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::EXTRA_KEY); });
 
-    SetText(input_number_);
-}
+    connect(ui->btn_ms, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_SAVE); });
+    connect(ui->btn_ml, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_LOAD); });
+    connect(ui->btn_mc, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_CLEAR); });
 
-void MainWindow::OnBackspacePressed() {
-    if (input_number_.isEmpty()) return;
-
-    input_number_.chop(1);
-    if (input_number_.isEmpty() || input_number_ == "-") {
-        input_number_ = "0";
-    }
-    SetText(input_number_);
-}
-
-void MainWindow::OnOperationPressed() {
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-
-    Operation op = Operation::NO_OPERATION;
-    QString text = button->text();
-    if (text == "+") op = Operation::ADDITION;
-    else if (text == "−") op = Operation::SUBTRACTION;
-    else if (text == "×") op = Operation::MULTIPLICATION;
-    else if (text == "÷") op = Operation::DIVISION;
-    else if (text == "xʸ") op = Operation::POWER;
-
-    SetOperation(op);
-}
-
-void MainWindow::SetOperation(Operation op) {
-    if (current_operation_ == Operation::NO_OPERATION) {
-        calculator_.Set(active_number_);
-    }
-    
-    current_operation_ = op;
-    is_result_shown_ = false; 
-    
-    QString formula_text = QString("%1 %2")
-                           .arg(calculator_.GetNumber())
-                           .arg(OpToString(op));
-    l_formula->setText(formula_text);
-    
-    input_number_ = ""; 
-}
-
-void MainWindow::OnEqualPressed() {
-    if (current_operation_ == Operation::NO_OPERATION) return;
-
-    l_formula->setText(QString("%1 %2 %3 =")
-                       .arg(calculator_.GetNumber())
-                       .arg(OpToString(current_operation_))
-                       .arg(active_number_));
-
-    switch (current_operation_) {
-        case Operation::ADDITION:       calculator_.Add(active_number_); break;
-        case Operation::SUBTRACTION:    calculator_.Sub(active_number_); break;
-        case Operation::MULTIPLICATION: calculator_.Mul(active_number_); break;
-        case Operation::DIVISION:       calculator_.Div(active_number_); break;
-        case Operation::POWER:          calculator_.Pow(active_number_); break;
-        default: break;
-    }
-
-    active_number_ = calculator_.GetNumber();
-    l_result->setText(QString::number(active_number_));
-    
-    input_number_ = ""; 
-    current_operation_ = Operation::NO_OPERATION;
-    is_result_shown_ = true; 
-}
-
-void MainWindow::OnMemoryPressed() {
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-
-    QString text = button->text();
-
-    if (text == "MS") {
-        memory_value_ = active_number_;
-        has_memory_ = true;
-        l_memory->setText("M");
-    } 
-    else if (text == "MR") {
-        if (has_memory_) {
-            active_number_ = memory_value_;
-            l_result->setText(QString::number(active_number_));
-            input_number_ = ""; 
-            is_result_shown_ = true; 
+    connect(ui->cmb_controller, &QComboBox::currentIndexChanged, [this]() {
+        if (controller_cb_) {
+            QString type_str = ui->cmb_controller->currentText().trimmed();
+            ControllerType type = ControllerType::DOUBLE;
+            if (type_str == "uint8_t") type = ControllerType::UINT8_T;
+            else if (type_str == "int") type = ControllerType::INT;
+            else if (type_str == "int64_t") type = ControllerType::INT64_T;
+            else if (type_str == "size_t") type = ControllerType::SIZE_T;
+            else if (type_str == "double") type = ControllerType::DOUBLE;
+            else if (type_str == "float") type = ControllerType::FLOAT;
+            else if (type_str == "Rational") type = ControllerType::RATIONAL;
+            controller_cb_(type);
         }
-    } 
-    else if (text == "MC") {
-        memory_value_ = 0.0;
-        has_memory_ = false;
-        l_memory->clear();
+    });
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::SetInputText(const std::string& text) {
+    ui->l_result->setStyleSheet("");
+    ui->l_result->setText(QString::fromStdString(text));
+}
+
+void MainWindow::SetErrorText(const std::string& text) {
+    ui->l_result->setStyleSheet("color: red;");
+    ui->l_result->setText(QString::fromStdString(text));
+}
+
+void MainWindow::SetFormulaText(const std::string& text) {
+    ui->l_formula->setText(QString::fromStdString(text));
+}
+
+void MainWindow::SetMemText(const std::string& text) {
+    ui->l_memory->setText(QString::fromStdString(text));
+}
+
+void MainWindow::SetExtraKey(const std::optional<std::string>& key) {
+    if (key.has_value()) {
+        ui->tb_extra->show();
+        ui->tb_extra->setText(QString::fromStdString(*key));
+    } else {
+        ui->tb_extra->hide();
     }
 }
 
-void MainWindow::OnClearPressed() {
-    current_operation_ = Operation::NO_OPERATION;
-    l_formula->clear();
-    calculator_.Set(0.0);
-    is_result_shown_ = false; 
-    SetText("0");
+void MainWindow::SetDigitKeyCallback(std::function<void(int key)> cb) {
+    digit_cb_ = cb;
+}
+
+void MainWindow::SetProcessOperationKeyCallback(std::function<void(Operation key)> cb) {
+    operation_cb_ = cb;
+}
+
+void MainWindow::SetProcessControlKeyCallback(std::function<void(ControlKey key)> cb) {
+    control_cb_ = cb;
+}
+
+void MainWindow::SetControllerCallback(std::function<void(ControllerType controller)> cb) {
+    controller_cb_ = cb;
 }
