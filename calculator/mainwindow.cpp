@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QDebug>
+#include <unordered_map>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -61,19 +63,27 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->btn_ms, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_SAVE); });
     connect(ui->btn_ml, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_LOAD); });
     connect(ui->btn_mc, &QPushButton::clicked, [this]() { if (control_cb_) control_cb_(ControlKey::MEM_CLEAR); });
-
     connect(ui->cmb_controller, &QComboBox::currentIndexChanged, [this]() {
-        if (controller_cb_) {
-            QString type_str = ui->cmb_controller->currentText().trimmed();
-            ControllerType type = ControllerType::DOUBLE;
-            if (type_str == "uint8_t") type = ControllerType::UINT8_T;
-            else if (type_str == "int") type = ControllerType::INT;
-            else if (type_str == "int64_t") type = ControllerType::INT64_T;
-            else if (type_str == "size_t") type = ControllerType::SIZE_T;
-            else if (type_str == "double") type = ControllerType::DOUBLE;
-            else if (type_str == "float") type = ControllerType::FLOAT;
-            else if (type_str == "Rational") type = ControllerType::RATIONAL;
-            controller_cb_(type);
+        if (!controller_cb_) {
+            return;
+        }
+        static const std::unordered_map<std::string, ControllerType> type_mapping = {
+            {"uint8_t",  ControllerType::UINT8_T},
+            {"int",      ControllerType::INT},
+            {"int64_t",  ControllerType::INT64_T},
+            {"size_t",   ControllerType::SIZE_T},
+            {"double",   ControllerType::DOUBLE},
+            {"float",    ControllerType::FLOAT},
+            {"Rational", ControllerType::RATIONAL}
+        };
+
+        std::string type_str = ui->cmb_controller->currentText().trimmed().toStdString();
+        
+        auto it = type_mapping.find(type_str);
+        if (it != type_mapping.end()) {
+            controller_cb_(it->second);
+        } else {
+            controller_cb_(ControllerType::DOUBLE); // Значение по умолчанию, если строка не распознана
         }
     });
 }
