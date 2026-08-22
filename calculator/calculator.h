@@ -64,6 +64,10 @@ public:
             if (x == 0) {
                 return "Division by zero";
             }
+        } else if constexpr (std::is_floating_point_v<Number>) {
+            if (x == 0.0) {
+                return "Division by zero";
+            }
         }
         current_number_ = current_number_ / x;
         return std::nullopt;
@@ -85,7 +89,7 @@ public:
                 return "Integer negative power";
             }
         } else if constexpr (std::is_floating_point_v<Number>) {
-            if (current_number_ == 0 && x == 0) {
+            if (current_number_ == 0.0 && x == 0.0) {
                 return "Zero power to zero";
             }
         }
